@@ -78,6 +78,3 @@ public:
     : ConstantNode(value) {}
     virtual void print() { std::cout << "FloatNode: " << value << std::endl; }
 };
-
-
-
