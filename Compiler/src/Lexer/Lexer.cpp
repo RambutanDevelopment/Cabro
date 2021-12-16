@@ -15,7 +15,7 @@ Lexer::Lexer(const std::string& filePath)
 
 	if (!file.is_open())
 	{
-		throw std::runtime_error("Failed to open file: " + filePath);
+		throw std::runtime_error("File '" + filePath + "' is already open");
 	}
 
 	size_t size = file.tellg();
@@ -68,7 +68,7 @@ std::vector<Token> Lexer::Tokenize()
 		}
 		else
 		{
-			std::string errormsg("Bad character: ");
+			std::string errormsg("Invalid Char: ");
 			errormsg.push_back(*charPtr);
 			throw std::runtime_error(errormsg);
 		}
@@ -87,7 +87,7 @@ Token Lexer::TokenizeNum()
 		{
 			if (dot)
 			{
-				throw std::runtime_error("Cannot have 2 dots in one number.");
+				throw std::runtime_error("Float has invalid char"); // Might make a function that displays where the invalid char is
 			}
 			dot = true;
 		}
