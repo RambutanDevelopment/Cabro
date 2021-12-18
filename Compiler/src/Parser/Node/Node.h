@@ -1,18 +1,21 @@
 #pragma once
 
+//std
 #include <memory>
 #include <string>
 #include <vector>
 #include <iostream>
 
+//TODO: Get rid of print
+
 class Node 
 {
 public:
-    std::vector<std::shared_ptr<Node>> nodes;
     virtual std::shared_ptr<Node> flink(int index) { return nullptr; }
     virtual int precedence() { return 0; }
     virtual void print() { std::cout << "Node" << std::endl; }
     std::shared_ptr<Node> blink;
+    virtual void setNode(std::shared_ptr<Node> node, int index) { return; }
 };
 
 class ConstructNode : public Node
@@ -22,13 +25,16 @@ public:
     virtual std::shared_ptr<Node> flink(int index) override { return nodes[index]; }
     int precedence() override { return precendeceval; }
     ConstructNode(int size, int precedence);
+    std::vector<std::shared_ptr<Node>> nodes;
+    virtual void setNode(std::shared_ptr<Node> node, int index) { nodes[index] = node; }
 };
 
 class ConstantNode : public Node
 {
 public:
     std::string value;
-    ConstantNode(const std::string& value);
+    ConstantNode(const std::string& value)
+    : value(value) {}
 };
 
 class MulNode : public ConstructNode
@@ -78,3 +84,4 @@ public:
     : ConstantNode(value) {}
     virtual void print() { std::cout << "FloatNode: " << value << std::endl; }
 };
+
