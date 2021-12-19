@@ -22,4 +22,5 @@ public:
 	{}
 
 	std::string str();
+	TokenType getType() const { return type; }
 };

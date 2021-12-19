@@ -9,7 +9,9 @@
 class Parser
 {
 private:
-    int statement = 0;
+    int statementIndex = 0;
+    int lastStatement = 0;
+    std::vector<Token> tokens;
 public:
     Parser(const std::vector<Token>& tokens);
     ~Parser() {}

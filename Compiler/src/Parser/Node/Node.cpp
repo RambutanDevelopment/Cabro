@@ -11,9 +11,3 @@ ConstructNode::ConstructNode(int size, int precedence)
         nodes[i] = std::make_shared<Node>();
     }
 }
-
-ConstantNode::ConstantNode(const std::string& value)
-    : value(value) 
-{
-    nodes.resize(0);
-}
