@@ -11,13 +11,19 @@ int main()
 	std::vector<Token> tokens = lexer.Tokenize();
 	Parser parser(tokens);
 	std::shared_ptr<Node> node = parser.Parse();
-	node->flink(0)->print();
-	for (std::shared_ptr<Node> current = node; ; )
+	
+	node->print();
+	for (std::shared_ptr<Node> current = node; ;)
 	{
-		if (current->flink(1) == nullptr) break;
+		for (std::shared_ptr<Node> currentRight = current->flink(1); ; )
+		{
+			if (currentRight->flink(1) == nullptr) break;
+			currentRight->print(); 
+			currentRight = currentRight->flink(1);
+		}
+		if (current->flink(0) == nullptr) break;
+		current = current->flink(0);
 		current->print(); 
-		current = current->flink(1);
 	}
 }
 
-//Print with double array counter func (recursive calling, with pos info)

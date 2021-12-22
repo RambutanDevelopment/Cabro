@@ -48,7 +48,10 @@ std::pair<std::vector<typeIndex>, typeIndex> lookup1(std::vector<Token> tokens, 
         if (within(tokens[i].getType(), types, size))
         {
             vals.emplace_back(tokens[i].getType(), i, vals.size());
-            if (map_prec[tokens[i].getType()] < map_prec[node1data.type]) node1data = {tokens[i].getType(), i, vals.size() - 1};
+            if (map_prec[node1data.type] >= map_prec[tokens[i].getType()]) 
+            {
+                node1data = {tokens[i].getType(), i, vals.size() - 1};
+            }
         }
     }
 
@@ -74,22 +77,22 @@ void buildRightNodes(std::shared_ptr<Node> node, const std::vector<typeIndex>& i
             node->setNode(std::make_shared<DivNode>(), 1);
             break;
         default:   
-            throw std::logic_error("There is something very wrong here... in the right node");
+            node->setNode(nullptr, 1);
             break;
     }
 
     buildRightNodes(node->flink(1), indexes, indexes[nodeStart.constructsIndex + 1], quitAt);
 }
 
-void buildLeftNode(std::shared_ptr<Node> node, const std::vector<typeIndex>& indexes, typeIndex nodeStart)
+typeIndex buildLeftNode(std::shared_ptr<Node> node, const std::vector<typeIndex>& indexes, typeIndex nodeStart)
 {
-    TokenType type = TokenType::SEMI;
+    typeIndex leftNodeData(TokenType::SEMI, -1, -1);
     for (int i = 0; indexes[i].constructsIndex < nodeStart.constructsIndex; i++)
     {
-        if (map_prec[type] > map_prec[indexes[i].type]) type = indexes[i].type;
+        if (map_prec[leftNodeData.type] >= map_prec[indexes[i].type]) leftNodeData = indexes[i];
     }
 
-    switch(type)
+    switch(leftNodeData.type)
     {
         case TokenType::ADD: 
             node->setNode(std::make_shared<AddNode>(), 0);
@@ -104,11 +107,11 @@ void buildLeftNode(std::shared_ptr<Node> node, const std::vector<typeIndex>& ind
             node->setNode(std::make_shared<DivNode>(), 0);
             break;
         default:   
-            throw std::logic_error("There is something very wrong here... in the left node");
+            node->setNode(nullptr, 0);
             break;
     }
 
-    return;
+    return leftNodeData;
 }
 
 //Takes two lists of different tokens and splices them together
@@ -192,8 +195,17 @@ std::shared_ptr<Node> Parser::Parse()
     }
 
     // Second lookup pass (determines the construct nodes that come from the first node)
-    buildRightNodes(node1, vals.first, vals.second, vals.first.size());
-    buildLeftNode(node1, vals.first, vals.second);
+    std::shared_ptr<Node> current = node1;
+    typeIndex currentData = vals.second;
+    size_t quitAt = vals.first.size();
+    while (true)
+    {
+        buildRightNodes(current, vals.first, currentData, quitAt);
+        quitAt = currentData.constructsIndex;
+        currentData = buildLeftNode(current, vals.first, currentData);
+        if (current->flink(0) == nullptr) break;
+        current = current->flink(0); 
+    }
 
     return node1;
 }
