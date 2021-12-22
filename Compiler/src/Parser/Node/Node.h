@@ -12,10 +12,13 @@ class Node
 {
 public:
     virtual std::shared_ptr<Node> flink(int index) { return nullptr; }
-    virtual int precedence() { return 0; }
-    virtual void print() { std::cout << "Node" << std::endl; }
-    std::shared_ptr<Node> blink;
     virtual void setNode(std::shared_ptr<Node> node, int index) { return; }
+    
+    virtual int precedence() { return 0; }
+
+    virtual void print() { std::cout << "Node" << std::endl; }
+
+    std::shared_ptr<Node> blink;
 };
 
 class ConstructNode : public Node

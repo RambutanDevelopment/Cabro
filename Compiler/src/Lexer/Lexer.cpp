@@ -1,5 +1,7 @@
 #include "Lexer.h"
 
+#include "Utils/Utils.h"
+
 // std
 #include <fstream>
 #include <stdexcept>
@@ -61,7 +63,7 @@ std::vector<Token> Lexer::Tokenize()
 			tokens.emplace_back(TokenType::SUB);
 			charPtr++;
 		}
-		else if (within(DIGITS)) // checks if char is digit
+		else if (within(*charPtr, DIGITS, strlen(DIGITS))) // checks if char is digit
 		{
 			tokens.emplace_back(TokenizeNum());
 		}
@@ -80,10 +82,9 @@ Token Lexer::TokenizeNum() // generates number
 	std::string buf; // stores number generated
 	bool dot = false;
 
-	// "strcat()" combines 2 c strings
-	for (; within(DIGITS) || within("."); charPtr++) // checks if char is a digit or a dot, gets next char if true
+	for (; within(*charPtr, DIGITS, strlen(DIGITS)) || *charPtr == '.'; charPtr++) // checks if char is a digit or a dot, gets next char if true
 	{
-		buf.push_back(*charPtr); //
+		buf.push_back(*charPtr); 
 		if (*charPtr == '.') // checks if two dots
 		{
 			if (dot)
@@ -102,17 +103,4 @@ Token Lexer::TokenizeNum() // generates number
 	{
 		return Token(TokenType::INTVAL, buf); // returns integer otherwise
 	}
-}
-
-bool Lexer::within(const char* charList) // char gets checked, returns true if in charlist
-{
-	int length = strlen(charList);
-	for (int i = 0; i < length; i++)
-	{
-		if (charList[i] == *charPtr)
-		{
-			return true;
-		}
-	}
-	return false;
 }

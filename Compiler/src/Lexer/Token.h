@@ -21,6 +21,6 @@ public:
 		: type(type), value(value)
 	{}
 
-	std::string str();
+	std::string str() const;
 	TokenType getType() const { return type; }
 };

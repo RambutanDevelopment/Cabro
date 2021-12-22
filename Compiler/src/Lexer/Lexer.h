@@ -17,5 +17,4 @@ public:
 	std::vector<Token> Tokenize();
 private:
 	Token TokenizeNum();
-	bool within(const char* charList);
 };

@@ -1,54 +1,118 @@
 #include "Parser.h"
 
+#include "Utils/Utils.h"
+
 // std
 #include <iostream>
 #include <unordered_map>
 
+// Parser constructor, does nothing currently
 Parser::Parser(const std::vector<Token>& tokens)
     : tokens(tokens)
 {
 
 }
 
+// Map of precedences 
 std::unordered_map<TokenType, int> map_prec = 
 {
     {TokenType::ADD, 5},
     {TokenType::SUB, 5},
     {TokenType::MUL, 6},
     {TokenType::DIV, 6},
+    {TokenType::SEMI, 100} // So no seg fault when accessing at a semicolon token
 };
 
-<<<<<<< Updated upstream
-=======
-using typeIndex = std::pair<TokenType, int>;
-
->>>>>>> Stashed changes
-std::vector<std::vector<int>> lookup1(const std::vector<Token>& tokens, TokenType* types, size_t size)
+// Struct of type, int and int
+struct typeIndex
 {
-    std::vector<std::vector<int>> vals(size);
+    TokenType type;
+    int statementIndex, constructsIndex;
+    typeIndex() 
+        : type(TokenType::SEMI), statementIndex(-1), constructsIndex(-1)
+    {}
+    typeIndex(TokenType type, int statementIndex, int constructsIndex)
+      : type(type), statementIndex(statementIndex), constructsIndex(constructsIndex)
+    {}
+};
 
-    for (int i = 0; i < size; i++)
-    {
-        vals[i].resize(0);
-    }
+// Detemines the groups of tokens, and their indexes, as well as returning the data for the first node in tree
+std::pair<std::vector<typeIndex>, typeIndex> lookup1(std::vector<Token> tokens, TokenType* types, size_t size)
+{
+    std::vector<typeIndex> vals;
+    vals.resize(0);
+    typeIndex node1data{TokenType::SEMI, -1, -1};  
 
     for (int i = 0; i < tokens.size(); i++)
     {
-        for (int j = 0; j < size; j++) 
+        if (within(tokens[i].getType(), types, size))
         {
-            if (tokens[i].getType() == types[j]) 
-            {
-                vals[j].push_back(i);
-            }
+            vals.emplace_back(tokens[i].getType(), i, vals.size());
+            if (map_prec[tokens[i].getType()] < map_prec[node1data.type]) node1data = {tokens[i].getType(), i, vals.size() - 1};
         }
     }
 
-    return vals;
+    return {vals, node1data};
 }
 
-<<<<<<< Updated upstream
-=======
-std::vector<typeIndex> PairArray(std::vector<int> list1, std::vector<int> list2, TokenType t1, TokenType t2)
+void buildRightNodes(std::shared_ptr<Node> node, const std::vector<typeIndex>& indexes, typeIndex nodeStart, size_t quitAt)
+{
+    if (nodeStart.constructsIndex + 1 >= quitAt) return;
+
+    switch(indexes[nodeStart.constructsIndex + 1].type)
+    {
+        case TokenType::ADD: 
+            node->setNode(std::make_shared<AddNode>(), 1);
+            break;
+        case TokenType::SUB: 
+            node->setNode(std::make_shared<SubNode>(), 1);
+            break;
+        case TokenType::MUL: 
+            node->setNode(std::make_shared<MulNode>(), 1);
+            break;
+        case TokenType::DIV: 
+            node->setNode(std::make_shared<DivNode>(), 1);
+            break;
+        default:   
+            throw std::logic_error("There is something very wrong here... in the right node");
+            break;
+    }
+
+    buildRightNodes(node->flink(1), indexes, indexes[nodeStart.constructsIndex + 1], quitAt);
+}
+
+void buildLeftNode(std::shared_ptr<Node> node, const std::vector<typeIndex>& indexes, typeIndex nodeStart)
+{
+    TokenType type = TokenType::SEMI;
+    for (int i = 0; indexes[i].constructsIndex < nodeStart.constructsIndex; i++)
+    {
+        if (map_prec[type] > map_prec[indexes[i].type]) type = indexes[i].type;
+    }
+
+    switch(type)
+    {
+        case TokenType::ADD: 
+            node->setNode(std::make_shared<AddNode>(), 0);
+            break;
+        case TokenType::SUB: 
+            node->setNode(std::make_shared<SubNode>(), 0);
+            break;
+        case TokenType::MUL: 
+            node->setNode(std::make_shared<MulNode>(), 0);
+            break;
+        case TokenType::DIV: 
+            node->setNode(std::make_shared<DivNode>(), 0);
+            break;
+        default:   
+            throw std::logic_error("There is something very wrong here... in the left node");
+            break;
+    }
+
+    return;
+}
+
+//Takes two lists of different tokens and splices them together
+/* std::vector<typeIndex> PairArray(std::vector<int> list1, std::vector<int> list2, TokenType t1, TokenType t2)
 {
     std::vector<typeIndex> combinedList;
     for (int i = 0; i < list1.size(); i++)
@@ -79,11 +143,12 @@ std::vector<typeIndex> PairArray(std::vector<int> list1, std::vector<int> list2,
         }
     }
     return combinedList;
-}
+} */
 
->>>>>>> Stashed changes
+// Returns the first node of a statements AST
 std::shared_ptr<Node> Parser::Parse()
 {
+    // Setting up statements
     std::vector<Token> statement;
 
     for (int i = lastStatement; ;i++)
@@ -100,72 +165,25 @@ std::shared_ptr<Node> Parser::Parse()
 
     statementIndex++;
 
+    //Lookup pass 1 (gets first node in the parse tree)
     TokenType types[4] = {TokenType::MUL, TokenType::DIV, TokenType::ADD, TokenType::SUB};
 
     auto vals = lookup1(statement, types, 4);
 
-<<<<<<< Updated upstream
-=======
-    auto divmulvals = PairArray(vals[0], vals[1], types[0], types[1]);
-    auto addsubvals = PairArray(vals[2], vals[3], types[2], types[3]);
-
->>>>>>> Stashed changes
     std::shared_ptr<Node> node1;
-    int j = -1, k = -1;
-    
-    for (int i = 0, current_prec = 0; i < 4; i++)
+
+    switch (vals.second.type)
     {
-<<<<<<< Updated upstream
-        if (vals[i].size()) {
-=======
-        if (vals[i].size()) 
-        {
->>>>>>> Stashed changes
-            if (vals[i][vals[i].size() - 1] > j) 
-            {
-                j = vals[i][vals[i].size() - 1]; 
-                k = (int) types[i];
-            }
-        }
-<<<<<<< Updated upstream
-        if (j != -1 && map_prec[types[i]] < current_prec) break; 
-    }
-
-=======
-        /*Checks if j doesn't have a value 
-        and if so and the last precedence (prec) is 
-        lower than that of the type, then exit the loop */
-        if (j != -1 && map_prec[types[i]] < current_prec) break; 
-    }
-
-    for (int i = 0, current_prec = 0; i < 2; i++)
-    {
-        switch(i)
-        {
-            case 0:
-                
-            case 1:   
-
-        }
-        /*Checks if j doesn't have a value 
-        and if so and the last precedence (prec) is 
-        lower than that of the type, then exit the loop */
-        if (j != -1 && map_prec[types[i * 2]] < current_prec) break; 
-    }
-
->>>>>>> Stashed changes
-    switch (k)
-    {
-        case (int) TokenType::ADD: 
+        case TokenType::ADD: 
             node1 = std::make_shared<AddNode>();
             break;
-        case (int) TokenType::SUB: 
+        case TokenType::SUB: 
             node1 = std::make_shared<SubNode>();
             break;
-        case (int) TokenType::MUL: 
+        case TokenType::MUL: 
             node1 = std::make_shared<MulNode>();
             break;
-        case (int) TokenType::DIV: 
+        case TokenType::DIV: 
             node1 = std::make_shared<DivNode>();
             break;
         default:   
@@ -173,11 +191,11 @@ std::shared_ptr<Node> Parser::Parse()
             break;
     }
 
+    // Second lookup pass (determines the construct nodes that come from the first node)
+    buildRightNodes(node1, vals.first, vals.second, vals.first.size());
+    buildLeftNode(node1, vals.first, vals.second);
+
     return node1;
 }
 
-<<<<<<< Updated upstream
-=======
 
-
->>>>>>> Stashed changes
