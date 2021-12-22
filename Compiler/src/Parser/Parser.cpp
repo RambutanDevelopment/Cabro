@@ -39,30 +39,34 @@ struct typeIndex
 // Detemines the groups of tokens, and their indexes, as well as returning the data for the first node in tree
 std::pair<std::vector<typeIndex>, typeIndex> lookup1(std::vector<Token> tokens, TokenType* types, size_t size)
 {
-    std::vector<typeIndex> vals;
-    vals.resize(0);
-    typeIndex node1data{TokenType::SEMI, -1, -1};  
+    // Operations (not numbers) mapped to their corresponding types
+    std::vector<typeIndex> constructs;
+    constructs.resize(0);
+    // Info for the first node
+    typeIndex node1data;
 
     for (int i = 0; i < tokens.size(); i++)
     {
         if (within(tokens[i].getType(), types, size))
         {
-            vals.emplace_back(tokens[i].getType(), i, vals.size());
+            constructs.emplace_back(tokens[i].getType(), i, constructs.size());
             if (map_prec[node1data.type] >= map_prec[tokens[i].getType()]) 
             {
-                node1data = {tokens[i].getType(), i, vals.size() - 1};
+                node1data = {tokens[i].getType(), i, constructs.size() - 1};
             }
         }
     }
 
-    return {vals, node1data};
+    return {constructs, node1data};
 }
 
-void buildRightNodes(std::shared_ptr<Node> node, const std::vector<typeIndex>& indexes, typeIndex nodeStart, size_t quitAt)
+/* Creates every construct node to the right of the starting node, until the quitAt index
+Also fills in the numbers on the left node of each operation */
+void buildRightNodes(std::shared_ptr<Node> node, const std::vector<Token>& statement, typeIndex nodeStart, size_t quitAt)
 {
-    if (nodeStart.constructsIndex + 1 >= quitAt) return;
+    if (nodeStart.statementIndex + 2 >= quitAt) return;
 
-    switch(indexes[nodeStart.constructsIndex + 1].type)
+    switch (statement[nodeStart.statementIndex + 2].type)
     {
         case TokenType::ADD: 
             node->setNode(std::make_shared<AddNode>(), 1);
@@ -76,12 +80,27 @@ void buildRightNodes(std::shared_ptr<Node> node, const std::vector<typeIndex>& i
         case TokenType::DIV: 
             node->setNode(std::make_shared<DivNode>(), 1);
             break;
+        case (TokenType::INTVAL || TokenType::FLOATVAL):
+            throw std::runtime_error("You did something wrong! You have 2 numbers in a row.");
         default:   
             node->setNode(nullptr, 1);
             break;
     }
 
-    buildRightNodes(node->flink(1), indexes, indexes[nodeStart.constructsIndex + 1], quitAt);
+    if (nodeStart.statementIndex + 1 >= quitAt) throw std::runtime_error("You did something wrong! You have an operation at the end, without a value!");
+
+    switch(statement[nodeStart.statementIndex + 1].getType())
+    {
+        case TokenType::INTVAL:
+            node->flink(1)->setNode(std::make_shared<IntNode>(statement[nodeStart.statementIndex + 1].getValue()));
+        case TokenType::FLOATVAL:
+            node->flink(1)->setNode(std::make_shared<FloatNode>(statement[nodeStart.statementIndex + 1].getValue()));
+        default:
+            throw std::runtime_error("Incorrect type.");
+    }
+    
+    // Recursive function call to itself, with updated nodes and node1data
+    buildRightNodes(node->flink(1), statement, indexes[nodeStart.constructsIndex + 2], quitAt);
 }
 
 typeIndex buildLeftNode(std::shared_ptr<Node> node, const std::vector<typeIndex>& indexes, typeIndex nodeStart)
@@ -154,6 +173,7 @@ std::shared_ptr<Node> Parser::Parse()
     // Setting up statements
     std::vector<Token> statement;
 
+    // Filters out semicolons and get the statement of code
     for (int i = lastStatement; ;i++)
     {
         if (i == tokens.size()) return nullptr;
@@ -171,10 +191,13 @@ std::shared_ptr<Node> Parser::Parse()
     //Lookup pass 1 (gets first node in the parse tree)
     TokenType types[4] = {TokenType::MUL, TokenType::DIV, TokenType::ADD, TokenType::SUB};
 
+    // Gets the construct array and the data for the first node
     auto vals = lookup1(statement, types, 4);
 
+    // Creates the first node object
     std::shared_ptr<Node> node1;
 
+    // Assigns the first node a value, based on it's operation
     switch (vals.second.type)
     {
         case TokenType::ADD: 
@@ -197,13 +220,29 @@ std::shared_ptr<Node> Parser::Parse()
     // Second lookup pass (determines the construct nodes that come from the first node)
     std::shared_ptr<Node> current = node1;
     typeIndex currentData = vals.second;
-    size_t quitAt = vals.first.size();
+    size_t quitAt = statementIndex.size();
     while (true)
     {
         buildRightNodes(current, vals.first, currentData, quitAt);
-        quitAt = currentData.constructsIndex;
+        for (std::shared_ptr<Node> current2 = current; ;)
+        {
+            if (current2->flink(1)->flink(1) == nullptr)
+            {
+                switch(statement[quitAt - 1].getType())
+                {
+                    case TokenType::INTVAL:
+                        current2->flink(1)->setNode(std::make_shared<IntNode>(statement[quitAt - 1].getValue()));
+                    case TokenType::FLOATVAL:
+                        current2->flink(1)->setNode(std::make_shared<FloatNode>(statement[quitAt - 1].getValue()));
+                    default:
+                        throw std::runtime_error("Incorrect value.");
+                }
+            }
+            current = current->flink(1);
+        }
+        quitAt = currentData.statementIndex;
         currentData = buildLeftNode(current, vals.first, currentData);
-        if (current->flink(0) == nullptr) break;
+        if (current->flink(0)->flink(0) == nullptr) break;
         current = current->flink(0); 
     }
 
