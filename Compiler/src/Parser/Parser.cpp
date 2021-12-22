@@ -60,12 +60,18 @@ std::pair<std::vector<typeIndex>, typeIndex> lookup1(std::vector<Token> tokens, 
     return {constructs, node1data};
 }
 
+// Building Node Functions: Build nodes into AST
+
 /* Creates every construct node to the right of the starting node, until the quitAt index
 Also fills in the numbers on the left node of each operation */
 void buildRightNodes(std::shared_ptr<Node> node, const std::vector<Token>& statement, const std::vector<typeIndex>& indexes, typeIndex nodeStart, size_t quitAt)
 {
+    // NodeStart: Data for the first node
+
+
     if (nodeStart.statementIndex + 2 >= quitAt) return;
 
+    // Getting operation from NodeStart
     switch (statement[nodeStart.statementIndex + 2].getType())
     {
         case TokenType::ADD: 
@@ -91,11 +97,14 @@ void buildRightNodes(std::shared_ptr<Node> node, const std::vector<Token>& state
 
     if (nodeStart.statementIndex + 1 >= quitAt) throw std::runtime_error("You did something wrong! You have an operation at the end, without a value!");
 
+    // Getting operand from NodeStart
     switch(statement[nodeStart.statementIndex + 1].getType())
     {
         case TokenType::INTVAL:
+            // Sets value for the following operation's left node
             node->flink(1)->setNode(std::make_shared<IntNode>(statement[nodeStart.statementIndex + 1].getValue()), 0);
         case TokenType::FLOATVAL:
+            // Sets value for the following operation's left node
             node->flink(1)->setNode(std::make_shared<FloatNode>(statement[nodeStart.statementIndex + 1].getValue()), 0);
         default:
             throw std::runtime_error("Incorrect type.");
@@ -105,6 +114,7 @@ void buildRightNodes(std::shared_ptr<Node> node, const std::vector<Token>& state
     buildRightNodes(node->flink(1), statement, indexes, indexes[nodeStart.constructsIndex + 1], quitAt);
 }
 
+// Finds the operator closest with operation ordering to the left of the starting node
 typeIndex buildLeftNode(std::shared_ptr<Node> node, const std::vector<typeIndex>& indexes, typeIndex nodeStart)
 {
     typeIndex leftNodeData(TokenType::SEMI, -1, -1);
@@ -222,10 +232,10 @@ std::shared_ptr<Node> Parser::Parse()
     // Second lookup pass (determines the construct nodes that come from the first node)
     std::shared_ptr<Node> current = node1;
     typeIndex currentData = vals.second;
-    size_t quitAt = statementIndex.size();
+    size_t quitAt = statement.size();
     while (true)
     {
-        buildRightNodes(current, vals.first, currentData, quitAt);
+        buildRightNodes(current, statement, vals.first, currentData, quitAt);
         for (std::shared_ptr<Node> current2 = current; ;)
         {
             if (current2->flink(1)->flink(1) == nullptr)
