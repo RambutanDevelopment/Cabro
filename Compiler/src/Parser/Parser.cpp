@@ -62,11 +62,11 @@ std::pair<std::vector<typeIndex>, typeIndex> lookup1(std::vector<Token> tokens, 
 
 /* Creates every construct node to the right of the starting node, until the quitAt index
 Also fills in the numbers on the left node of each operation */
-void buildRightNodes(std::shared_ptr<Node> node, const std::vector<Token>& statement, typeIndex nodeStart, size_t quitAt)
+void buildRightNodes(std::shared_ptr<Node> node, const std::vector<Token>& statement, const std::vector<typeIndex>& indexes, typeIndex nodeStart, size_t quitAt)
 {
     if (nodeStart.statementIndex + 2 >= quitAt) return;
 
-    switch (statement[nodeStart.statementIndex + 2].type)
+    switch (statement[nodeStart.statementIndex + 2].getType())
     {
         case TokenType::ADD: 
             node->setNode(std::make_shared<AddNode>(), 1);
@@ -80,7 +80,9 @@ void buildRightNodes(std::shared_ptr<Node> node, const std::vector<Token>& state
         case TokenType::DIV: 
             node->setNode(std::make_shared<DivNode>(), 1);
             break;
-        case (TokenType::INTVAL || TokenType::FLOATVAL):
+        case TokenType::FLOATVAL:
+            throw std::runtime_error("You did something wrong! You have 2 numbers in a row.");
+        case TokenType::INTVAL: 
             throw std::runtime_error("You did something wrong! You have 2 numbers in a row.");
         default:   
             node->setNode(nullptr, 1);
@@ -92,15 +94,15 @@ void buildRightNodes(std::shared_ptr<Node> node, const std::vector<Token>& state
     switch(statement[nodeStart.statementIndex + 1].getType())
     {
         case TokenType::INTVAL:
-            node->flink(1)->setNode(std::make_shared<IntNode>(statement[nodeStart.statementIndex + 1].getValue()));
+            node->flink(1)->setNode(std::make_shared<IntNode>(statement[nodeStart.statementIndex + 1].getValue()), 0);
         case TokenType::FLOATVAL:
-            node->flink(1)->setNode(std::make_shared<FloatNode>(statement[nodeStart.statementIndex + 1].getValue()));
+            node->flink(1)->setNode(std::make_shared<FloatNode>(statement[nodeStart.statementIndex + 1].getValue()), 0);
         default:
             throw std::runtime_error("Incorrect type.");
     }
     
     // Recursive function call to itself, with updated nodes and node1data
-    buildRightNodes(node->flink(1), statement, indexes[nodeStart.constructsIndex + 2], quitAt);
+    buildRightNodes(node->flink(1), statement, indexes, indexes[nodeStart.constructsIndex + 1], quitAt);
 }
 
 typeIndex buildLeftNode(std::shared_ptr<Node> node, const std::vector<typeIndex>& indexes, typeIndex nodeStart)
@@ -231,9 +233,9 @@ std::shared_ptr<Node> Parser::Parse()
                 switch(statement[quitAt - 1].getType())
                 {
                     case TokenType::INTVAL:
-                        current2->flink(1)->setNode(std::make_shared<IntNode>(statement[quitAt - 1].getValue()));
+                        current2->flink(1)->setNode(std::make_shared<IntNode>(statement[quitAt - 1].getValue()), 1);
                     case TokenType::FLOATVAL:
-                        current2->flink(1)->setNode(std::make_shared<FloatNode>(statement[quitAt - 1].getValue()));
+                        current2->flink(1)->setNode(std::make_shared<FloatNode>(statement[quitAt - 1].getValue()), 1);
                     default:
                         throw std::runtime_error("Incorrect value.");
                 }
